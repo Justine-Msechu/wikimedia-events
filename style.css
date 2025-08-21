@@ -1,208 +1,99 @@
-/* Custom styles for Wikimedia Events Browser - Static Version */
+/* Card layout to match the screenshot style */
+.event-card { border-radius: 12px; }
+.event-card .card-body { padding: 1.25rem 1.25rem; }
 
-.event-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border: 1px solid #dee2e6;
-    background-color: #f8f9fa;
-    height: 100%;
+.event-detail {
+  display: grid;
+  grid-template-columns: 1fr auto; /* left info, right dates */
+  gap: 1.25rem 2rem;
+  align-items: start;
 }
 
-.event-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.detail-left {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* two columns for fields */
+  gap: 1rem 2rem;
 }
 
-.event-card .card-body {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
 }
 
-.event-card .card-text {
-    flex-grow: 1;
+.detail-label {
+  font-weight: 700;
+  color: #495057;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
 }
 
-.badge.bg-outline-primary {
-    background-color: transparent !important;
-    border: 1px solid #0d6efd;
-    color: #0d6efd;
+.detail-label i {
+  color: #6c757d;
 }
 
-.badge.bg-outline-primary:hover {
-    background-color: #0d6efd !important;
-    color: white;
+.pill {
+  display: inline-block;
+  background: #e9ecef;
+  border: 1px solid #dee2e6;
+  border-radius: 999px;
+  padding: .35rem .6rem;
+  font-size: .875rem;
+  line-height: 1;
+  color: #212529;
+  margin-right: .35rem;
+  margin-bottom: .35rem;
 }
 
-.badge.bg-outline-success {
-    background-color: transparent !important;
-    border: 1px solid #198754;
-    color: #198754;
+.badge.participation-online   { background-color: #0d6efd !important; }
+.badge.participation-in-person{ background-color: #198754 !important; }
+.badge.participation-hybrid   { background-color: #6c757d !important; }
+
+.right-col {
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: .75rem;
 }
 
-.badge.bg-outline-success:hover {
-    background-color: #198754 !important;
-    color: white;
+.right-col .side-label {
+  font-size: .9rem;
+  color: #6c757d;
+  margin-bottom: .15rem;
 }
 
-.badge.bg-outline-warning {
-    background-color: transparent !important;
-    border: 1px solid #ffc107;
-    color: #996404;
+.right-col .side-value {
+  font-weight: 800;
+  font-size: 1.25rem;
 }
 
-.badge.bg-outline-warning:hover {
-    background-color: #ffc107 !important;
-    color: #996404;
+.view-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .6rem 1rem;
 }
 
-/* Filter section styling */
-#filtersCard {
-    border: 1px solid #dee2e6;
-    background: #f8f9fa;
+.organizer-chip {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  color: #212529;
+  border-radius: 999px;
+  padding: .25rem .6rem;
+  font-size: .85rem;
+  margin-right: .35rem;
+  margin-bottom: .35rem;
 }
 
-#filtersCard .card-title {
-    color: #0d6efd;
+.event-title {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
 }
 
-/* Event date styling */
-.event-date {
-    color: #6c757d;
-    font-size: 0.875rem;
-}
-
-.event-location {
-    color: #495057;
-    font-weight: 500;
-}
-
-/* Custom scrollbar for webkit browsers */
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #f1f3f4;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #c1c8cd;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #a8b3ba;
-}
-
-/* Improved typography */
-.card-title a {
-    color: #212529;
-    transition: color 0.2s ease;
-    text-decoration: none;
-}
-
-.card-title a:hover {
-    color: #0d6efd;
-    text-decoration: none;
-}
-
-/* Loading indicator styling */
-#loadingIndicator {
-    color: #0d6efd;
-}
-
-.spinner-border {
-    width: 3rem;
-    height: 3rem;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .display-4 {
-        font-size: 2rem;
-    }
-    
-    .lead {
-        font-size: 1rem;
-    }
-    
-    #filtersCard .row {
-        --bs-gutter-x: 1rem;
-    }
-    
-    .event-card {
-        margin-bottom: 1rem;
-    }
-}
-
-/* Animation for event cards */
-.event-card {
-    animation: fadeInUp 0.3s ease;
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Filter highlight */
-.form-control:focus,
-.form-select:focus {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-}
-
-/* Badge styles for event types */
-.badge-conference { background-color: #0d6efd; }
-.badge-workshop { background-color: #198754; }
-.badge-meetup { background-color: #fd7e14; }
-.badge-hackathon { background-color: #dc3545; }
-.badge-training { background-color: #6f42c1; }
-.badge-competition { background-color: #ffc107; color: #000; }
-
-/* Participation badges */
-.participation-online { 
-    background-color: #17a2b8; 
-    color: white;
-}
-
-.participation-in-person { 
-    background-color: #28a745; 
-    color: white;
-}
-
-.participation-hybrid { 
-    background-color: #6c757d; 
-    color: white;
-}
-
-/* Status indicators */
-.status-upcoming { 
-    color: #28a745; 
-    font-weight: 500;
-}
-
-.status-ongoing { 
-    color: #ffc107; 
-    font-weight: 500;
-}
-
-.status-completed { 
-    color: #6c757d; 
-    font-weight: 500;
-}
-
-/* Country flag styling (if we add flags later) */
-.country-flag {
-    width: 20px;
-    height: auto;
-    margin-right: 0.5rem;
-    border-radius: 2px;
+@media (max-width: 992px) {
+  .event-detail { grid-template-columns: 1fr; }
+  .right-col { align-items: flex-start; }
 }

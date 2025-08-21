@@ -1,449 +1,451 @@
-// Wikimedia Events Browser - JavaScript Client
+// Wikimedia Events Browser - Live Data Client (two-column detail layout)
 class WikimediaEventsClient {
     constructor() {
-        this.events = [];
-        this.filteredEvents = [];
-        this.countries = new Set();
-        this.eventTypes = new Set();
-        this.lastUpdated = null;
-        this.cache = {
-            data: null,
-            timestamp: null,
-            duration: 5 * 60 * 1000 // 5 minutes cache
-        };
-        
-        this.init();
+      this.events = [];
+      this.filteredEvents = [];
+      this.countries = new Set();
+      this.eventTypes = new Set();
+      this.lastUpdated = null;
+      this.cache = { data: null, timestamp: null, duration: 5 * 60 * 1000 };
+  
+      this.setupEventListeners();
+      this.loadEvents();
     }
-
-    init() {
-        this.setupEventListeners();
-        this.loadEvents();
-    }
-
-    setupEventListeners() {
-        // Search input
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-            searchInput.addEventListener('input', () => this.filterEvents());
-        }
-
-        // Filter dropdowns
-        ['countryFilter', 'typeFilter', 'participationFilter'].forEach(filterId => {
-            const filter = document.getElementById(filterId);
-            if (filter) {
-                filter.addEventListener('change', () => this.filterEvents());
-            }
-        });
-    }
-
-    async loadEvents() {
-        // Check cache first
-        if (this.isCacheValid()) {
-            this.events = this.cache.data;
-            this.processEvents();
-            return;
-        }
-
-        this.showLoading();
-        
-        try {
-            // Since we can't directly scrape due to CORS, we'll use Wikipedia API
-            const events = await this.fetchWikipediaEvents();
-            this.events = events;
-            this.cache.data = events;
-            this.cache.timestamp = Date.now();
-            this.lastUpdated = new Date();
-            
-            this.processEvents();
-            
-        } catch (error) {
-            console.error('Error loading events:', error);
-            this.showError('Failed to load events from Wikipedia. Please try again later.');
-        }
-    }
-
-    async fetchWikipediaEvents() {
-        // Since direct scraping has CORS issues, we'll create some sample events
-        // In a real deployment, you'd need a proxy server or use Wikipedia's API
-        
-        // For now, let's simulate the events with realistic data
-        return this.generateSampleEvents();
-    }
-
-    generateSampleEvents() {
-        const sampleEvents = [
-            {
-                id: 1,
-                title: "Wiki Loves Monuments Photography Contest",
-                description: "Global photography contest focusing on monuments and cultural heritage sites across the world.",
-                start_date: "2025-09-01",
-                end_date: "2025-09-30",
-                country: "Global",
-                location: "Worldwide",
-                event_type: "Competition",
-                participation_options: "online",
-                link: "https://commons.wikimedia.org/wiki/Commons:Wiki_Loves_Monuments",
-                organizer: "Wikimedia Commons"
-            },
-            {
-                id: 2,
-                title: "WikiData Tutorial Workshop",
-                description: "Learn how to contribute structured data to Wikidata, the free knowledge base.",
-                start_date: "2025-08-25",
-                end_date: "2025-08-25",
-                country: "Germany",
-                location: "Berlin",
-                event_type: "Workshop",
-                participation_options: "hybrid",
-                link: "https://www.wikidata.org",
-                organizer: "Wikimedia Deutschland"
-            },
-            {
-                id: 3,
-                title: "Wikipedia Writing Marathon",
-                description: "Join fellow editors in a day-long writing session to improve Wikipedia articles.",
-                start_date: "2025-08-30",
-                end_date: "2025-08-30",
-                country: "United States",
-                location: "San Francisco",
-                event_type: "Meetup",
-                participation_options: "in-person",
-                link: "https://en.wikipedia.org",
-                organizer: "Wikimedia Foundation"
-            },
-            {
-                id: 4,
-                title: "Wikimania 2025 Conference",
-                description: "Annual international conference celebrating Wikipedia and the broader Wikimedia movement.",
-                start_date: "2025-08-15",
-                end_date: "2025-08-17",
-                country: "Singapore",
-                location: "Singapore",
-                event_type: "Conference",
-                participation_options: "hybrid",
-                link: "https://wikimania.wikimedia.org",
-                organizer: "Wikimedia Foundation"
-            },
-            {
-                id: 5,
-                title: "Commons Photo Workshop",
-                description: "Learn photography techniques and how to contribute high-quality images to Wikimedia Commons.",
-                start_date: "2025-09-05",
-                end_date: "2025-09-05",
-                country: "France",
-                location: "Paris",
-                event_type: "Workshop",
-                participation_options: "in-person",
-                link: "https://commons.wikimedia.org",
-                organizer: "Wikimedia France"
-            },
-            {
-                id: 6,
-                title: "Edit-a-thon: Climate Change",
-                description: "Collaborative editing event focused on improving climate change-related articles.",
-                start_date: "2025-09-12",
-                end_date: "2025-09-12",
-                country: "United Kingdom",
-                location: "London",
-                event_type: "Meetup",
-                participation_options: "online",
-                link: "https://en.wikipedia.org",
-                organizer: "Wikimedia UK"
-            },
-            {
-                id: 7,
-                title: "MediaWiki Development Hackathon",
-                description: "Technical event for developers working on MediaWiki software and related tools.",
-                start_date: "2025-09-20",
-                end_date: "2025-09-22",
-                country: "Netherlands",
-                location: "Amsterdam",
-                event_type: "Hackathon",
-                participation_options: "hybrid",
-                link: "https://www.mediawiki.org",
-                organizer: "Wikimedia Foundation"
-            },
-            {
-                id: 8,
-                title: "Wikipedia Education Training",
-                description: "Training session for educators on how to integrate Wikipedia into classroom activities.",
-                start_date: "2025-08-28",
-                end_date: "2025-08-28",
-                country: "Canada",
-                location: "Toronto",
-                event_type: "Training",
-                participation_options: "hybrid",
-                link: "https://outreach.wikimedia.org/wiki/Education",
-                organizer: "Wikimedia Canada"
-            }
-        ];
-
-        return sampleEvents;
-    }
-
-    isCacheValid() {
-        return this.cache.data && 
-               this.cache.timestamp && 
-               (Date.now() - this.cache.timestamp) < this.cache.duration;
-    }
-
-    processEvents() {
-        // Extract unique countries and event types
-        this.countries.clear();
-        this.eventTypes.clear();
-        
-        this.events.forEach(event => {
-            if (event.country) this.countries.add(event.country);
-            if (event.event_type) this.eventTypes.add(event.event_type);
-        });
-
-        this.populateFilters();
-        this.filterEvents();
-        this.updateStats();
-        this.showMainContent();
-    }
-
-    populateFilters() {
-        // Populate country filter
-        const countryFilter = document.getElementById('countryFilter');
-        if (countryFilter) {
-            countryFilter.innerHTML = '<option value="">All Countries</option>';
-            [...this.countries].sort().forEach(country => {
-                const option = document.createElement('option');
-                option.value = country;
-                option.textContent = country;
-                countryFilter.appendChild(option);
-            });
-        }
-
-        // Populate event type filter
-        const typeFilter = document.getElementById('typeFilter');
-        if (typeFilter) {
-            typeFilter.innerHTML = '<option value="">All Types</option>';
-            [...this.eventTypes].sort().forEach(type => {
-                const option = document.createElement('option');
-                option.value = type;
-                option.textContent = type;
-                typeFilter.appendChild(option);
-            });
-        }
-    }
-
-    filterEvents() {
-        const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
-        const countryFilter = document.getElementById('countryFilter')?.value || '';
-        const typeFilter = document.getElementById('typeFilter')?.value || '';
-        const participationFilter = document.getElementById('participationFilter')?.value || '';
-
-        this.filteredEvents = this.events.filter(event => {
-            const matchesSearch = !searchTerm || 
-                event.title.toLowerCase().includes(searchTerm) ||
-                event.description.toLowerCase().includes(searchTerm);
-                
-            const matchesCountry = !countryFilter || event.country === countryFilter;
-            const matchesType = !typeFilter || event.event_type === typeFilter;
-            const matchesParticipation = !participationFilter || 
-                event.participation_options === participationFilter;
-
-            return matchesSearch && matchesCountry && matchesType && matchesParticipation;
-        });
-
-        this.displayEvents();
-        this.updateFilterStats();
-    }
-
-    displayEvents() {
-        const container = document.getElementById('eventsContainer');
-        const noEventsMessage = document.getElementById('noEvents');
-        
-        if (!container) return;
-
-        if (this.filteredEvents.length === 0) {
-            container.innerHTML = '';
-            if (noEventsMessage) noEventsMessage.style.display = 'block';
-            return;
-        }
-
-        if (noEventsMessage) noEventsMessage.style.display = 'none';
-
-        container.innerHTML = this.filteredEvents.map(event => this.createEventCard(event)).join('');
-    }
-
-    createEventCard(event) {
-        const formatDate = (dateStr) => {
-            if (!dateStr) return 'Date TBD';
-            const date = new Date(dateStr);
-            return date.toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric' 
-            });
-        };
-
-        const getParticipationBadge = (participation) => {
-            const classes = {
-                'online': 'participation-online',
-                'in-person': 'participation-in-person',
-                'hybrid': 'participation-hybrid'
-            };
-            const labels = {
-                'online': 'Online',
-                'in-person': 'In Person',
-                'hybrid': 'Hybrid'
-            };
-            return `<span class="badge ${classes[participation] || 'bg-secondary'}">${labels[participation] || participation}</span>`;
-        };
-
-        const getEventTypeBadge = (type) => {
-            const colors = {
-                'Conference': 'bg-primary',
-                'Workshop': 'bg-success',
-                'Meetup': 'bg-warning',
-                'Hackathon': 'bg-danger',
-                'Training': 'bg-info',
-                'Competition': 'bg-dark'
-            };
-            return `<span class="badge ${colors[type] || 'bg-secondary'}">${type}</span>`;
-        };
-
-        return `
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card event-card border">
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            <a href="${event.link}" target="_blank">${event.title}</a>
-                        </h5>
-                        <div class="mb-2">
-                            ${getEventTypeBadge(event.event_type)}
-                            ${getParticipationBadge(event.participation_options)}
-                        </div>
-                        <p class="card-text">${event.description}</p>
-                        <div class="mb-2">
-                            <small class="event-date">
-                                <i class="fas fa-calendar me-1"></i>
-                                ${formatDate(event.start_date)}${event.end_date !== event.start_date ? ' - ' + formatDate(event.end_date) : ''}
-                            </small>
-                        </div>
-                        <div class="mb-3">
-                            <small class="event-location">
-                                <i class="fas fa-map-marker-alt me-1"></i>
-                                ${event.location || event.country}
-                            </small>
-                        </div>
-                        <div class="mt-auto">
-                            <a href="${event.link}" target="_blank" class="btn btn-primary btn-sm">
-                                <i class="fas fa-eye me-1"></i>
-                                View Event
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    updateStats() {
-        const totalEventsElement = document.getElementById('totalEvents');
-        const lastUpdatedElement = document.getElementById('lastUpdated');
-        
-        if (totalEventsElement) {
-            totalEventsElement.textContent = this.events.length;
-        }
-        
-        if (lastUpdatedElement && this.lastUpdated) {
-            lastUpdatedElement.textContent = this.lastUpdated.toLocaleTimeString();
-        }
-    }
-
-    updateFilterStats() {
-        const filteredCountElement = document.getElementById('filteredCount');
-        const totalCountElement = document.getElementById('totalCount');
-        
-        if (filteredCountElement) {
-            filteredCountElement.textContent = this.filteredEvents.length;
-        }
-        
-        if (totalCountElement) {
-            totalCountElement.textContent = this.events.length;
-        }
-    }
-
-    clearFilters() {
-        document.getElementById('searchInput').value = '';
-        document.getElementById('countryFilter').value = '';
-        document.getElementById('typeFilter').value = '';
-        document.getElementById('participationFilter').value = '';
-        this.filterEvents();
-    }
-
+  
+    // ===== UI =====
+    $(id) { return document.getElementById(id); }
     showLoading() {
-        document.getElementById('loadingIndicator').style.display = 'block';
-        document.getElementById('mainContent').style.display = 'none';
-        document.getElementById('errorMessage').style.display = 'none';
-        document.getElementById('contactSection').style.display = 'none';
+      this.$('loadingIndicator').style.display = 'block';
+      this.$('mainContent').classList.add('d-none');
+      this.$('errorMessage').classList.add('d-none');
+      this.$('contactSection').classList.add('d-none');
     }
-
     showMainContent() {
-        document.getElementById('loadingIndicator').style.display = 'none';
-        document.getElementById('mainContent').style.display = 'block';
-        document.getElementById('errorMessage').style.display = 'none';
-        document.getElementById('contactSection').style.display = 'none';
+      this.$('loadingIndicator').style.display = 'none';
+      this.$('mainContent').classList.remove('d-none');
+      this.$('errorMessage').classList.add('d-none');
+      this.$('contactSection').classList.add('d-none');
     }
-
-    showError(message) {
-        document.getElementById('loadingIndicator').style.display = 'none';
-        document.getElementById('mainContent').style.display = 'none';
-        document.getElementById('errorMessage').style.display = 'block';
-        document.getElementById('contactSection').style.display = 'none';
-        document.getElementById('errorText').textContent = message;
+    showError(msg) {
+      this.$('loadingIndicator').style.display = 'none';
+      this.$('mainContent').classList.add('d-none');
+      this.$('errorMessage').classList.remove('d-none');
+      this.$('contactSection').classList.add('d-none');
+      this.$('errorText').textContent = msg || 'Unknown error.';
     }
-
     showContact() {
-        document.getElementById('loadingIndicator').style.display = 'none';
-        document.getElementById('mainContent').style.display = 'none';
-        document.getElementById('errorMessage').style.display = 'none';
-        document.getElementById('contactSection').style.display = 'block';
+      this.$('loadingIndicator').style.display = 'none';
+      this.$('mainContent').classList.add('d-none');
+      this.$('errorMessage').classList.add('d-none');
+      this.$('contactSection').classList.remove('d-none');
     }
-
+    setupEventListeners() {
+      const searchInput = this.$('searchInput');
+      if (searchInput) searchInput.addEventListener('input', () => this.filterEvents());
+      ['countryFilter','typeFilter','participationFilter'].forEach(id => {
+        const el = this.$(id);
+        if (el) el.addEventListener('change', () => this.filterEvents());
+      });
+    }
+  
+    // ===== Lifecycle =====
+    async loadEvents() {
+      if (this.isCacheValid()) {
+        this.events = this.cache.data;
+        this.lastUpdated = new Date(this.cache.timestamp);
+        this.processEvents();
+        return;
+      }
+      this.showLoading();
+      try {
+        const events = await this.fetchWikipediaEvents();
+        this.events = events;
+        this.cache = { data: events, timestamp: Date.now(), duration: this.cache.duration };
+        this.lastUpdated = new Date();
+        this.processEvents();
+      } catch (e) {
+        console.error(e);
+        this.showError('Failed to load events from Wikipedia. Please try again later.');
+      }
+    }
+    isCacheValid() {
+      return this.cache.data && this.cache.timestamp && (Date.now() - this.cache.timestamp) < this.cache.duration;
+    }
+    processEvents() {
+      this.events = this.events.map(this.normalizeEvent);
+      this.countries.clear(); this.eventTypes.clear();
+      this.events.forEach(ev => {
+        if (ev.country) this.countries.add(ev.country);
+        if (ev.event_type) this.eventTypes.add(ev.event_type);
+      });
+      this.populateFilters();
+      this.filterEvents();
+      this.updateStats();
+      this.showMainContent();
+    }
+    populateFilters() {
+      const cf = this.$('countryFilter');
+      if (cf) {
+        cf.innerHTML = '<option value="">All Countries</option>';
+        [...this.countries].sort().forEach(c => cf.appendChild(new Option(c, c)));
+      }
+      const tf = this.$('typeFilter');
+      if (tf) {
+        tf.innerHTML = '<option value="">All Types</option>';
+        [...this.eventTypes].sort().forEach(t => tf.appendChild(new Option(t, t)));
+      }
+    }
+    filterEvents() {
+      const q = (this.$('searchInput')?.value || '').toLowerCase().trim();
+      const country = this.$('countryFilter')?.value || '';
+      const type = this.$('typeFilter')?.value || '';
+      const participation = this.$('participationFilter')?.value || '';
+      this.filteredEvents = this.events.filter(ev => {
+        const matchesQ = !q || ev.title.toLowerCase().includes(q) || (ev.description || '').toLowerCase().includes(q);
+        const matchesC = !country || ev.country === country;
+        const matchesT = !type || ev.event_type === type;
+        const matchesP = !participation || ev.participation_options === participation;
+        return matchesQ && matchesC && matchesT && matchesP;
+      });
+      this.displayEvents();
+      this.updateFilterStats();
+    }
+    updateStats() {
+      if (this.$('totalEvents')) this.$('totalEvents').textContent = this.events.length;
+      if (this.$('lastUpdated') && this.lastUpdated) {
+        this.$('lastUpdated').textContent = new Intl.DateTimeFormat(undefined,{hour:'2-digit',minute:'2-digit'}).format(this.lastUpdated);
+      }
+    }
+    updateFilterStats() {
+      if (this.$('filteredCount')) this.$('filteredCount').textContent = this.filteredEvents.length;
+      if (this.$('totalCount')) this.$('totalCount').textContent = this.events.length;
+    }
+    clearFilters() {
+      if (this.$('searchInput')) this.$('searchInput').value = '';
+      if (this.$('countryFilter')) this.$('countryFilter').value = '';
+      if (this.$('typeFilter')) this.$('typeFilter').value = '';
+      if (this.$('participationFilter')) this.$('participationFilter').value = '';
+      this.filterEvents();
+    }
+    displayEvents() {
+      const container = this.$('eventsContainer');
+      const none = this.$('noEvents');
+      if (!container) return;
+      if (!this.filteredEvents.length) {
+        container.innerHTML = '';
+        if (none) none.classList.remove('d-none');
+        return;
+      }
+      if (none) none.classList.add('d-none');
+      container.innerHTML = this.filteredEvents.map(ev => this.createEventCard(ev)).join('');
+    }
+  
+    // ===== Helpers =====
+    resolveHref(href) {
+      if (!href) return "";
+      if (href.startsWith("//")) return "https:" + href;
+      if (href.startsWith("http://") || href.startsWith("https://")) return href;
+      if (href.startsWith("/")) return "https://sw.wikipedia.org" + href;
+      return "https://sw.wikipedia.org/" + href;
+    }
+    escape(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    normalizeEvent(ev) {
+      const toISO = (str) => {
+        if (!str) return null;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+        const d = new Date(str); if (isNaN(d)) return str;
+        const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), da=String(d.getDate()).padStart(2,'0');
+        return `${y}-${m}-${da}`;
+      };
+      return { ...ev, start_date: toISO(ev.start_date), end_date: toISO(ev.end_date) };
+    }
+  
+    // Extract value after any of the labels, until the next known label
+    extractLabeledValue(text, labels, stopLabels) {
+      const t = text.replace(/\s+/g, ' ').trim();
+      let start = -1, used = null;
+      for (const l of labels) {
+        const i = t.toLowerCase().indexOf(l.toLowerCase());
+        if (i >= 0 && (start === -1 || i < start)) { start = i; used = l; }
+      }
+      if (start < 0) return null;
+      let rest = t.slice(start + used.length).replace(/^[:\s]+/,'').trim();
+      const lowers = rest.toLowerCase();
+      let cutAt = rest.length;
+      for (const sl of stopLabels) {
+        const pos = lowers.indexOf(sl.toLowerCase());
+        if (pos >= 0 && pos < cutAt) cutAt = pos;
+      }
+      rest = rest.slice(0, cutAt).trim();
+      return rest || null;
+    }
+    stripKnownLabels(text) {
+      const labels = [
+        'Participation options','Ushiriki','Tukio la mtandaoni','Tukio la ana kwa ana',
+        'Country','Nchi','Event type','Event types','Aina ya tukio','Wiki','Topics',
+        'Waandaaji','Organizers','Organiser(s)','Organisateurs','Organisateur(s)',
+        'Dates','Tarehe','Mahali','Location'
+      ];
+      let s = text;
+      labels.forEach(l => { s = s.replace(new RegExp(`\\b${l}\\b\\s*:?\\s*`, 'gi'), ''); });
+      return s.replace(/\s{2,}/g, ' ').trim();
+    }
+  
+    // ===== Card =====
+    createEventCard(ev) {
+      const fmt = (d) => {
+        if (!d) return '—';
+        const dt = new Date(d); if (isNaN(dt)) return d;
+        return dt.toLocaleDateString(undefined, { year:'numeric', month:'long', day:'numeric' });
+      };
+  
+      const typeChips = ev.event_type ? `<span class="pill">${this.escape(ev.event_type)}</span>` : '<span class="pill">Other</span>';
+      const topicsChips = (ev.topics && ev.topics.length)
+        ? ev.topics.map(t => `<span class="pill">${this.escape(t)}</span>`).join('')
+        : '';
+      const organizersChips = (ev.organizers && ev.organizers.length)
+        ? ev.organizers.map(o => `<span class="organizer-chip">${this.escape(o)}</span>`).join('')
+        : '—';
+  
+      const participationBadge = (p) => {
+        const cls = { 'online':'participation-online','in-person':'participation-in-person','hybrid':'participation-hybrid' }[p] || 'bg-secondary';
+        const label = { 'online':'Tukio la mtandaoni','in-person':'Tukio la ana kwa ana','hybrid':'Tukio la mtandaoni na la ana kwa ana' }[p] || p || '—';
+        return `<span class="badge ${cls}">${label}</span>`;
+      };
+      const partHTML = ev.participation_options ? participationBadge(ev.participation_options) : '<span class="pill">—</span>';
+  
+      const dateRange = (ev.start_date || ev.end_date)
+        ? `${fmt(ev.start_date)} – ${fmt(ev.end_date || ev.start_date)}`
+        : '—';
+  
+      return `
+        <div class="col-12 mb-4">
+          <div class="card event-card border">
+            <div class="card-body">
+              <h4 class="event-title mb-3">
+                ${this.escape(ev.title)}
+                <a href="${ev.link}" target="_blank" rel="noopener" class="text-decoration-none" title="Open on wiki">
+                  <i class="fa-solid fa-up-right-from-square"></i>
+                </a>
+              </h4>
+  
+              <div class="event-detail">
+                <!-- LEFT -->
+                <div class="detail-left">
+                  <div class="detail-section">
+                    <div class="detail-label"><i class="fa-solid fa-calendar-days"></i> Date Range:</div>
+                    <div>${dateRange}</div>
+                  </div>
+  
+                  <div class="detail-section">
+                    <div class="detail-label"><i class="fa-solid fa-earth-africa"></i> Country:</div>
+                    <div>${ev.country ? `<span class="pill">${this.escape(ev.country)}</span>` : '—'}</div>
+                  </div>
+  
+                  <div class="detail-section">
+                    <div class="detail-label"><i class="fa-solid fa-users"></i> Participation:</div>
+                    <div>${partHTML}</div>
+                  </div>
+  
+                  <div class="detail-section">
+                    <div class="detail-label"><i class="fa-solid fa-tags"></i> Event Types:</div>
+                    <div>${typeChips}</div>
+                  </div>
+  
+                  <div class="detail-section">
+                    <div class="detail-label"><i class="fa-solid fa-hashtag"></i> Topics:</div>
+                    <div>${topicsChips || '—'}</div>
+                  </div>
+  
+                  <div class="detail-section">
+                    <div class="detail-label"><i class="fa-solid fa-user"></i> Organizers:</div>
+                    <div>${organizersChips}</div>
+                  </div>
+                </div>
+  
+                <!-- RIGHT -->
+                <div class="right-col">
+                  <div>
+                    <div class="side-label">Starts</div>
+                    <div class="side-value">${fmt(ev.start_date)}</div>
+                  </div>
+                  <div>
+                    <div class="side-label">Ends</div>
+                    <div class="side-value">${fmt(ev.end_date || ev.start_date)}</div>
+                  </div>
+                  <a href="${ev.link}" target="_blank" rel="noopener" class="btn btn-primary view-btn">
+                    <i class="fa-solid fa-eye"></i> View Event
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  
+    // ===== Fetch & Parse =====
+    async fetchWikipediaEvents() {
+      const apiUrl =
+        "https://sw.wikipedia.org/w/api.php" +
+        "?action=parse&format=json&formatversion=2" +
+        "&prop=text&contentmodel=wikitext" +
+        "&text=" + encodeURIComponent("{{Special:AllEvents}}") +
+        "&origin=*";
+  
+      const res = await fetch(apiUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const html = data?.parse?.text || "";
+      if (!html) throw new Error("Empty HTML from parse API");
+  
+      const doc = new DOMParser().parseFromString(html, "text/html");
+  
+      const containers = [
+        ".ext-campaignevents-collaborationlist",
+        ".mw-collaborationlist",
+        ".collaborationlist",
+        ".mw-parser-output",
+        "main"
+      ];
+  
+      let eventNodes = [];
+      for (const sel of containers) {
+        const root = doc.querySelector(sel);
+        if (!root) continue;
+        eventNodes = root.querySelectorAll(
+          [
+            '[data-ce-event-id]',
+            '.ce-event-card, .event-card, .mw-event-card',
+            '.ce-event',
+            '.mw-list-item .mw-ui-card',
+            'a[href*="Special:EventDetails"]',
+            'a[href*="/wiki/"]'
+          ].join(', ')
+        );
+        if (eventNodes.length) break;
+      }
+  
+      const events = [];
+      const seen = new Set();
+      const countryHints = [
+        "Tanzania","Kenya","Uganda","Rwanda","Burundi","DRC","Ethiopia","Nigeria","Ghana","South Africa",
+        "United States","United Kingdom","France","Germany","India","Canada","Singapore","Netherlands","Benin","Jamhuri ya Kidemokrasia ya Kongo"
+      ];
+      const typeHints = ["Conference","Workshop","Meetup","Hackathon","Training","Competition","Contest","Edit-a-thon","Editing event","Community","Other"];
+      const stopLabels = [
+        'Dates','Tarehe','Location','Mahali','Country','Nchi','Event type','Event types','Aina ya tukio',
+        'Participation options','Ushiriki','Wiki','Topics',
+        'Waandaaji','Organizers','Organiser(s)','Organisateurs','Organisateur(s)'
+      ];
+  
+      eventNodes.forEach(node => {
+        const a = node.tagName?.toLowerCase() === 'a' ? node : node.querySelector('a[href]');
+        if (!a) return;
+  
+        const rawHref = a.getAttribute('href') || a.href || "";
+        const link = this.resolveHref(rawHref);
+        if (!link || seen.has(link)) return;
+        seen.add(link);
+  
+        const title = (a.getAttribute('title') || a.textContent || '').trim();
+  
+        const wrapper = node.closest('.card, .mw-ui-card, li, tr, div') || node;
+        let aroundText = (wrapper?.textContent || node.textContent || '').replace(/\s+/g,' ').trim();
+        const lower = aroundText.toLowerCase();
+  
+        // Labeled values
+        const orgRaw = this.extractLabeledValue(aroundText, ['Waandaaji','Organizers','Organiser(s)','Organisateurs','Organisateur(s)'], stopLabels);
+        const countryLabeled = this.extractLabeledValue(aroundText, ['Country','Nchi'], stopLabels);
+        const typeLabeled = this.extractLabeledValue(aroundText, ['Event type','Event types','Aina ya tukio'], stopLabels);
+        const topicsRaw = this.extractLabeledValue(aroundText, ['Wiki','Topics'], stopLabels);
+        const locLabeled = this.extractLabeledValue(aroundText, ['Location','Mahali'], stopLabels);
+  
+        // Dates
+        const dateLabelRange = this.extractLabeledValue(aroundText, ['Dates','Tarehe'], stopLabels);
+        let start_date = null, end_date = null;
+        if (dateLabelRange) {
+          const parts = dateLabelRange.split(/[-–—to]+/i).map(s => s.trim()).filter(Boolean);
+          if (parts.length >= 2) { start_date = parts[0]; end_date = parts[1]; }
+          else { start_date = dateLabelRange; end_date = dateLabelRange; }
+        } else {
+          const dateMatches = aroundText.match(/(\d{4}-\d{2}-\d{2}|\d{1,2}\s+\w+\s+\d{4}|\w+\s+\d{1,2},\s*\d{4})/g) || [];
+          start_date = dateMatches[0] || null;
+          end_date = dateMatches[1] || start_date;
+        }
+  
+        // Participation
+        let participation_options = '';
+        if (lower.includes('hybrid') || lower.includes('mtandaoni na la ana kwa ana')) participation_options = 'hybrid';
+        else if (lower.includes('in-person') || lower.includes('in person') || lower.includes('ana kwa ana')) participation_options = 'in-person';
+        else if (lower.includes('online') || lower.includes('mtandaoni')) participation_options = 'online';
+  
+        // Type / Country fallbacks
+        const event_type = (typeLabeled && typeHints.find(t => typeLabeled.toLowerCase().includes(t.toLowerCase()))) ||
+                           typeHints.find(t => lower.includes(t.toLowerCase())) || 'Other';
+        const country = countryLabeled || countryHints.find(c => aroundText.includes(c)) || '';
+  
+        // Location
+        const locEl = wrapper.querySelector('.mw-event-location, .event-location, [class*="location"]');
+        const location = (locLabeled || locEl?.textContent || '').replace(/\s+/g,' ').trim() || country || '';
+  
+        // Organizers / Topics arrays
+        const splitList = (s) => (s || '')
+          .split(/,|;| na | and | & /i)
+          .map(x => x.trim())
+          .filter(Boolean);
+  
+        const organizers = splitList(orgRaw);
+        const topics = splitList(topicsRaw);
+  
+        // Description (strip labels)
+        let description = (wrapper.querySelector('.mw-event-description, .event-desc, p, small')?.textContent || '').trim();
+        if (!description) description = aroundText;
+        description = this.stripKnownLabels(description);
+  
+        events.push({
+          id: link,
+          title: title || 'Untitled event',
+          description,
+          start_date,
+          end_date,
+          country,
+          location,
+          event_type,
+          participation_options,
+          topics,
+          link,
+          organizers
+        });
+      });
+  
+      if (!events.length) throw new Error('No events parsed. The page layout may have changed or there are no events.');
+  
+      // Dedup
+      const uniq = new Map();
+      for (const e of events) {
+        const k = `${e.title}::${e.start_date || ''}`;
+        if (!uniq.has(k)) uniq.set(k, e);
+      }
+      return [...uniq.values()];
+    }
+  
+    // ===== Public (onclick) =====
     async refreshEvents() {
-        this.cache.data = null;
-        this.cache.timestamp = null;
-        await this.loadEvents();
+      this.cache.data = null; this.cache.timestamp = null;
+      await this.loadEvents();
     }
-}
-
-// Global functions for onclick handlers
-window.loadEvents = () => {
-    if (window.eventsClient) {
-        window.eventsClient.showMainContent();
-    }
-};
-
-window.refreshEvents = () => {
-    if (window.eventsClient) {
-        window.eventsClient.refreshEvents();
-    }
-};
-
-window.showContact = () => {
-    if (window.eventsClient) {
-        window.eventsClient.showContact();
-    }
-};
-
-window.showMainContent = () => {
-    if (window.eventsClient) {
-        window.eventsClient.showMainContent();
-    }
-};
-
-window.clearFilters = () => {
-    if (window.eventsClient) {
-        window.eventsClient.clearFilters();
-    }
-};
-
-// Initialize the application when the DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+  }
+  
+  // Global handlers
+  window.loadEvents = () => window.eventsClient?.showMainContent();
+  window.refreshEvents = () => window.eventsClient?.refreshEvents();
+  window.showContact = () => window.eventsClient?.showContact();
+  window.showMainContent = () => window.eventsClient?.showMainContent();
+  window.clearFilters = () => window.eventsClient?.clearFilters();
+  
+  // Boot
+  document.addEventListener('DOMContentLoaded', () => {
     window.eventsClient = new WikimediaEventsClient();
-});
+  });
+  
