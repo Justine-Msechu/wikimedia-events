@@ -1,4 +1,4 @@
-// Wikimedia Events Browser - Live Data Client (two-column detail layout)
+// Wikimedia Events Browser - Live Data Client (secured + two-column layout + month cutoff + bound events)
 class WikimediaEventsClient {
     constructor() {
       this.events = [];
@@ -8,12 +8,46 @@ class WikimediaEventsClient {
       this.lastUpdated = null;
       this.cache = { data: null, timestamp: null, duration: 5 * 60 * 1000 };
   
-      this.setupEventListeners();
+      // Bind UI clicks first (so the nav works immediately)
+      this.bindUIActions();
+  
+      // Then set up filter listeners and load data
+      this.setupFilterListeners();
       this.loadEvents();
     }
   
-    // ===== UI =====
+    // ===== Basic DOM helpers =====
     $(id) { return document.getElementById(id); }
+    on(id, type, handler) {
+      const el = this.$(id);
+      if (el) el.addEventListener(type, handler);
+    }
+    click(id, handler) {
+      this.on(id, 'click', (e) => { e.preventDefault(); handler(e); });
+    }
+  
+    // ===== Bind nav/buttons (no inline onclicks) =====
+    bindUIActions() {
+      this.click('brandHome', () => this.showMainContent());
+      this.click('navRefresh', () => this.refreshEvents());
+      this.click('navContact', () => this.showContact());
+      this.click('btnTryAgain', () => this.refreshEvents());
+      this.click('btnBackToEvents', () => this.showMainContent());
+      this.click('btnClearFilters', () => this.clearFilters());
+      this.click('btnClearAll', () => this.clearFilters());
+    }
+  
+    // ===== Filter listeners (inputs/selects) =====
+    setupFilterListeners() {
+      const searchInput = this.$('searchInput');
+      if (searchInput) searchInput.addEventListener('input', () => this.filterEvents());
+      ['countryFilter','typeFilter','participationFilter'].forEach(id => {
+        const el = this.$(id);
+        if (el) el.addEventListener('change', () => this.filterEvents());
+      });
+    }
+  
+    // ===== UI state =====
     showLoading() {
       this.$('loadingIndicator').style.display = 'block';
       this.$('mainContent').classList.add('d-none');
@@ -38,14 +72,6 @@ class WikimediaEventsClient {
       this.$('mainContent').classList.add('d-none');
       this.$('errorMessage').classList.add('d-none');
       this.$('contactSection').classList.remove('d-none');
-    }
-    setupEventListeners() {
-      const searchInput = this.$('searchInput');
-      if (searchInput) searchInput.addEventListener('input', () => this.filterEvents());
-      ['countryFilter','typeFilter','participationFilter'].forEach(id => {
-        const el = this.$(id);
-        if (el) el.addEventListener('change', () => this.filterEvents());
-      });
     }
   
     // ===== Lifecycle =====
@@ -72,7 +98,14 @@ class WikimediaEventsClient {
       return this.cache.data && this.cache.timestamp && (Date.now() - this.cache.timestamp) < this.cache.duration;
     }
     processEvents() {
+      // Normalize
       this.events = this.events.map(this.normalizeEvent);
+  
+      // Month cutoff: keep events that start OR end on/after 1st of current month
+      const cutoff = this.firstOfCurrentMonthDate();
+      this.events = this.events.filter(ev => this.eventStartsOrEndsOnOrAfter(ev, cutoff));
+  
+      // Build filter options
       this.countries.clear(); this.eventTypes.clear();
       this.events.forEach(ev => {
         if (ev.country) this.countries.add(ev.country);
@@ -83,6 +116,7 @@ class WikimediaEventsClient {
       this.updateStats();
       this.showMainContent();
     }
+  
     populateFilters() {
       const cf = this.$('countryFilter');
       if (cf) {
@@ -95,6 +129,7 @@ class WikimediaEventsClient {
         [...this.eventTypes].sort().forEach(t => tf.appendChild(new Option(t, t)));
       }
     }
+  
     filterEvents() {
       const q = (this.$('searchInput')?.value || '').toLowerCase().trim();
       const country = this.$('countryFilter')?.value || '';
@@ -110,6 +145,7 @@ class WikimediaEventsClient {
       this.displayEvents();
       this.updateFilterStats();
     }
+  
     updateStats() {
       if (this.$('totalEvents')) this.$('totalEvents').textContent = this.events.length;
       if (this.$('lastUpdated') && this.lastUpdated) {
@@ -140,7 +176,13 @@ class WikimediaEventsClient {
       container.innerHTML = this.filteredEvents.map(ev => this.createEventCard(ev)).join('');
     }
   
-    // ===== Helpers =====
+    // ===== Security helpers =====
+    escape(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    escapeAttr(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
     resolveHref(href) {
       if (!href) return "";
       if (href.startsWith("//")) return "https:" + href;
@@ -148,7 +190,49 @@ class WikimediaEventsClient {
       if (href.startsWith("/")) return "https://sw.wikipedia.org" + href;
       return "https://sw.wikipedia.org/" + href;
     }
-    escape(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    safeURL(rawHref) {
+      const abs = this.resolveHref(rawHref || "");
+      try {
+        const u = new URL(abs);
+        if (!/^https?:$/.test(u.protocol)) return '#';
+        const ok =
+          /\.wikipedia\.org$/.test(u.hostname) ||
+          /\.wikimedia\.org$/.test(u.hostname) ||
+          /\.wikidata\.org$/.test(u.hostname) ||
+          /\.mediawiki\.org$/.test(u.hostname) ||
+          /\.wikinews\.org$/.test(u.hostname) ||
+          /\.wikivoyage\.org$/.test(u.hostname) ||
+          /\.wikibooks\.org$/.test(u.hostname) ||
+          /\.wiktionary\.org$/.test(u.hostname) ||
+          /\.wikiversity\.org$/.test(u.hostname) ||
+          /\.wikimediafoundation\.org$/.test(u.hostname);
+        return ok ? u.href : '#';
+      } catch { return '#'; }
+    }
+  
+    // ===== Date helpers (month cutoff) =====
+    firstOfCurrentMonthDate() {
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+    parseDate(str) {
+      if (!str) return null;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+        const [y, m, d] = str.split('-').map(Number);
+        return new Date(y, m - 1, d);
+      }
+      const dt = new Date(str);
+      return isNaN(dt) ? null : dt;
+    }
+    eventStartsOrEndsOnOrAfter(ev, cutoff) {
+      const s = this.parseDate(ev.start_date);
+      const e = this.parseDate(ev.end_date || ev.start_date);
+      if (e && e >= cutoff) return true;
+      if (s && s >= cutoff) return true;
+      return false;
+    }
+  
+    // ===== Parsing helpers =====
     normalizeEvent(ev) {
       const toISO = (str) => {
         if (!str) return null;
@@ -159,8 +243,6 @@ class WikimediaEventsClient {
       };
       return { ...ev, start_date: toISO(ev.start_date), end_date: toISO(ev.end_date) };
     }
-  
-    // Extract value after any of the labels, until the next known label
     extractLabeledValue(text, labels, stopLabels) {
       const t = text.replace(/\s+/g, ' ').trim();
       let start = -1, used = null;
@@ -218,13 +300,15 @@ class WikimediaEventsClient {
         ? `${fmt(ev.start_date)} – ${fmt(ev.end_date || ev.start_date)}`
         : '—';
   
+      const linkAttr = this.escapeAttr(ev.link || '#');
+  
       return `
         <div class="col-12 mb-4">
           <div class="card event-card border">
             <div class="card-body">
               <h4 class="event-title mb-3">
                 ${this.escape(ev.title)}
-                <a href="${ev.link}" target="_blank" rel="noopener" class="text-decoration-none" title="Open on wiki">
+                <a href="${linkAttr}" target="_blank" rel="noopener noreferrer" class="text-decoration-none" title="Open on wiki">
                   <i class="fa-solid fa-up-right-from-square"></i>
                 </a>
               </h4>
@@ -273,7 +357,7 @@ class WikimediaEventsClient {
                     <div class="side-label">Ends</div>
                     <div class="side-value">${fmt(ev.end_date || ev.start_date)}</div>
                   </div>
-                  <a href="${ev.link}" target="_blank" rel="noopener" class="btn btn-primary view-btn">
+                  <a href="${linkAttr}" target="_blank" rel="noopener noreferrer" class="btn btn-primary view-btn">
                     <i class="fa-solid fa-eye"></i> View Event
                   </a>
                 </div>
@@ -330,7 +414,8 @@ class WikimediaEventsClient {
       const seen = new Set();
       const countryHints = [
         "Tanzania","Kenya","Uganda","Rwanda","Burundi","DRC","Ethiopia","Nigeria","Ghana","South Africa",
-        "United States","United Kingdom","France","Germany","India","Canada","Singapore","Netherlands","Benin","Jamhuri ya Kidemokrasia ya Kongo"
+        "United States","United Kingdom","France","Germany","India","Canada","Singapore","Netherlands","Benin",
+        "Jamhuri ya Kidemokrasia ya Kongo"
       ];
       const typeHints = ["Conference","Workshop","Meetup","Hackathon","Training","Competition","Contest","Edit-a-thon","Editing event","Community","Other"];
       const stopLabels = [
@@ -344,7 +429,7 @@ class WikimediaEventsClient {
         if (!a) return;
   
         const rawHref = a.getAttribute('href') || a.href || "";
-        const link = this.resolveHref(rawHref);
+        const link = this.safeURL(rawHref);
         if (!link || seen.has(link)) return;
         seen.add(link);
   
@@ -430,21 +515,14 @@ class WikimediaEventsClient {
       return [...uniq.values()];
     }
   
-    // ===== Public (onclick) =====
+    // ===== Public (bound to buttons in bindUIActions) =====
     async refreshEvents() {
       this.cache.data = null; this.cache.timestamp = null;
       await this.loadEvents();
     }
   }
   
-  // Global handlers
-  window.loadEvents = () => window.eventsClient?.showMainContent();
-  window.refreshEvents = () => window.eventsClient?.refreshEvents();
-  window.showContact = () => window.eventsClient?.showContact();
-  window.showMainContent = () => window.eventsClient?.showMainContent();
-  window.clearFilters = () => window.eventsClient?.clearFilters();
-  
-  // Boot
+  // Start app
   document.addEventListener('DOMContentLoaded', () => {
     window.eventsClient = new WikimediaEventsClient();
   });

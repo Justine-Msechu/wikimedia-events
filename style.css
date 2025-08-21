@@ -1,4 +1,4 @@
-/* Card layout to match the screenshot style */
+/* Card layout to match the desired screenshot style */
 .event-card { border-radius: 12px; }
 .event-card .card-body { padding: 1.25rem 1.25rem; }
 
@@ -29,9 +29,7 @@
   gap: .5rem;
 }
 
-.detail-label i {
-  color: #6c757d;
-}
+.detail-label i { color: #6c757d; }
 
 .pill {
   display: inline-block;
@@ -58,23 +56,10 @@
   gap: .75rem;
 }
 
-.right-col .side-label {
-  font-size: .9rem;
-  color: #6c757d;
-  margin-bottom: .15rem;
-}
+.right-col .side-label { font-size: .9rem; color: #6c757d; margin-bottom: .15rem; }
+.right-col .side-value { font-weight: 800; font-size: 1.25rem; }
 
-.right-col .side-value {
-  font-weight: 800;
-  font-size: 1.25rem;
-}
-
-.view-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  padding: .6rem 1rem;
-}
+.view-btn { display: inline-flex; align-items: center; gap: .5rem; padding: .6rem 1rem; }
 
 .organizer-chip {
   background: #f8f9fa;
@@ -87,11 +72,7 @@
   margin-bottom: .35rem;
 }
 
-.event-title {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-}
+.event-title { display: inline-flex; align-items: center; gap: .5rem; }
 
 @media (max-width: 992px) {
   .event-detail { grid-template-columns: 1fr; }

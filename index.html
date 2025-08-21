@@ -2,27 +2,37 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Wikimedia Events Browser</title>
 
-  <!-- Bootstrap & Icons -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet"/>
+  <!-- CSP: no 'unsafe-inline' for scripts, so we must not use inline onclick handlers -->
+  <meta http-equiv="Content-Security-Policy"
+        content="
+          default-src 'self';
+          connect-src 'self' https://sw.wikipedia.org;
+          img-src 'self' https: data:;
+          style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+          script-src 'self' https://cdn.jsdelivr.net;
+          font-src 'self' https://cdn.jsdelivr.net data:;
+          base-uri 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
 
-  <!-- App styles -->
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
   <link href="style.css" rel="stylesheet"/>
 </head>
 <body style="background-color:#fff;">
   <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
     <div class="container">
-      <a class="navbar-brand text-primary" href="#" onclick="loadEvents()">
+      <a id="brandHome" class="navbar-brand text-primary" href="#">
         <i class="fas fa-calendar-alt me-2"></i> Wikimedia Events
       </a>
       <div class="navbar-nav ms-auto">
-        <a class="nav-link text-dark" href="#" onclick="refreshEvents()">
+        <a id="navRefresh" class="nav-link text-dark" href="#">
           <i class="fas fa-arrows-rotate me-1"></i> Refresh Events
         </a>
-        <a class="nav-link text-dark" href="#contact" onclick="showContact()">
+        <a id="navContact" class="nav-link text-dark" href="#">
           <i class="fas fa-envelope me-1"></i> Contact
         </a>
       </div>
@@ -30,7 +40,6 @@
   </nav>
 
   <div class="container my-4">
-
     <!-- Loading -->
     <div id="loadingIndicator" class="text-center py-5" style="display:none;">
       <div class="spinner-border text-primary" role="status">
@@ -43,7 +52,7 @@
     <div id="errorMessage" class="alert alert-danger d-none">
       <i class="fas fa-triangle-exclamation me-2"></i>
       <span id="errorText">Error loading events. Please try again.</span>
-      <button class="btn btn-outline-danger btn-sm ms-3" onclick="refreshEvents()">
+      <button id="btnTryAgain" class="btn btn-outline-danger btn-sm ms-3">
         <i class="fas fa-arrows-rotate me-1"></i> Try Again
       </button>
     </div>
@@ -107,7 +116,7 @@
               </div>
               <div class="row mt-3">
                 <div class="col-12">
-                  <button class="btn btn-outline-secondary btn-sm" onclick="clearFilters()">
+                  <button id="btnClearFilters" class="btn btn-outline-secondary btn-sm">
                     <i class="fas fa-times me-1"></i> Clear Filters
                   </button>
                   <span class="text-muted ms-3">
@@ -128,7 +137,7 @@
         <i class="fas fa-calendar-xmark text-muted" style="font-size:4rem;"></i>
         <h3 class="text-muted mt-3">No events found</h3>
         <p class="text-muted">Try adjusting your filters or check back later for new events.</p>
-        <button class="btn btn-primary" onclick="clearFilters()">
+        <button id="btnClearAll" class="btn btn-primary">
           <i class="fas fa-filter me-1"></i> Clear All Filters
         </button>
       </div>
@@ -148,18 +157,10 @@
               <p>The Wikimedia Events Browser helps you discover and explore events from the Wikimedia community. All event data is sourced directly from Wikipedia's special events page.</p>
               <h5 class="text-primary mb-2">Data Source</h5>
               <p>Events are automatically retrieved from:
-                <a href="https://sw.wikipedia.org/wiki/Maalum:AllEvents" target="_blank" class="text-primary">
+                <a href="https://sw.wikipedia.org/wiki/Maalum:AllEvents" target="_blank" rel="noopener noreferrer" class="text-primary">
                   Wikipedia Events Page <i class="fas fa-arrow-up-right-from-square ms-1 small"></i>
                 </a>
               </p>
-              <h5 class="text-primary mb-2">Features</h5>
-              <ul class="list-unstyled">
-                <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Browse by country, type, participation</li>
-                <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Search by keywords</li>
-                <li class="mb-2"><i class="fas fa-check text-success me-2"></i> View detailed event info</li>
-                <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Direct links to event pages</li>
-                <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Automatic refresh</li>
-              </ul>
             </div>
 
             <div class="alert alert-info">
@@ -168,10 +169,10 @@
             </div>
 
             <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
-              <button class="btn btn-primary" onclick="showMainContent()">
+              <button id="btnBackToEvents" class="btn btn-primary">
                 <i class="fas fa-arrow-left me-1"></i> Back to Events
               </button>
-              <a href="https://sw.wikipedia.org/wiki/Maalum:AllEvents" target="_blank" class="btn btn-outline-primary">
+              <a href="https://sw.wikipedia.org/wiki/Maalum:AllEvents" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary">
                 <i class="fas fa-arrow-up-right-from-square me-1"></i> View Source Page
               </a>
             </div>
@@ -185,13 +186,11 @@
   <footer class="bg-light text-dark py-3 mt-5 border-top">
     <div class="container d-flex justify-content-between flex-wrap">
       <p class="mb-0">&copy; 2025 Wikimedia Events Browser</p>
-      <p class="mb-0"><small>Data from <a href="https://sw.wikipedia.org/wiki/Maalum:AllEvents" target="_blank" class="text-primary">Wikipedia Events</a></small></p>
+      <p class="mb-0"><small>Data from <a href="https://sw.wikipedia.org/wiki/Maalum:AllEvents" target="_blank" rel="noopener noreferrer" class="text-primary">Wikipedia Events</a></small></p>
     </div>
   </footer>
 
-  <!-- Bootstrap Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- App script -->
   <script src="script.js"></script>
 </body>
 </html>
